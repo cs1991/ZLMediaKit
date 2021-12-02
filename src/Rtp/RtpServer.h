@@ -53,12 +53,23 @@ public:
      */
     void setOnDetach(const function<void()> &cb);
 
+    /**
+    * 设置下载的call_id
+    */
+    void setCallId(const std::string callId);
+    /**
+    * 下载完成，开始保存文件
+    */
+    void onDownloadFinish();
+
 protected:
     Socket::Ptr _rtp_socket;
     UdpServer::Ptr _udp_server;
     TcpServer::Ptr _tcp_server;
     RtpProcess::Ptr _rtp_process;
     function<void()> _on_clearup;
+
+    std::string call_id;
 };
 
 }//namespace mediakit

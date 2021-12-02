@@ -243,6 +243,7 @@ int start_main(int argc,char *argv[]) {
         uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
         uint16_t rtpPort = mINI::Instance()[RtpProxy::kPort];
 
+        ErrorL << "main线程的id: " << this_thread::get_id() << endl;
         //设置poller线程数,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
         EventPollerPool::setPoolSize(threads);
 

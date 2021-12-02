@@ -70,6 +70,11 @@ public:
      */
     void setupRecordFlag(bool enable_hls, bool enable_mp4);
 
+    /**
+    *  视频格式转换
+    */
+    void transVideo(const string &input, const string &output);
+
 private:
     void findAsync(int maxWaitMS ,const function<void(const MediaSource::Ptr &src)> &cb);
     void startTimer(int timeout_ms);

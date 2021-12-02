@@ -20,7 +20,7 @@
 #include "Rtmp/RtmpMediaSourceMuxer.h"
 #include "TS/TSMediaSourceMuxer.h"
 #include "FMP4/FMP4MediaSourceMuxer.h"
-
+#include "config.h"
 namespace mediakit{
 
 class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
@@ -118,6 +118,11 @@ public:
      * @return 所有Track
      */
     vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
+
+    /*
+    * 结束录制
+    */
+    void stopRecoder();
 
 protected:
     /////////////////////////////////MediaSink override/////////////////////////////////

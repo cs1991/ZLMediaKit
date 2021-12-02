@@ -66,6 +66,13 @@ public:
     int getTotalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
+     /**
+     * 设置下载的call_id
+     */
+    void setCallId(const std::string callId);
+    string getCallId();
+    void onDownloadFinish();
+
 protected:
     bool inputFrame(const Frame::Ptr &frame) override;
     bool addTrack(const Track::Ptr & track) override;
@@ -78,6 +85,7 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
 private:
+    void emitOnUpload();
     void emitOnPublish();
     void doCachedFunc();
 
@@ -98,6 +106,11 @@ private:
     Ticker _last_check_alive;
     recursive_mutex _func_mtx;
     deque<function<void()> > _cached_func;
+
+    std::string save_path;
+    std::string mp4_path;
+    std::string call_id;
+   
 };
 
 }//namespace mediakit

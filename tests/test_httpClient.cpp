@@ -136,18 +136,13 @@ int main(int argc, char *argv[]) {
     requesterUploader->setMethod("POST");
     //设置http请求头
     HttpArgs argsUploader;
-    argsUploader["query"] = "test";
-    argsUploader["from"] = "en";
-    argsUploader["to"] = "zh";
-    argsUploader["transtype"] = "translang";
-    argsUploader["simple_means_flag"] = "3";
 
     static string boundary = "0xKhTmLbOuNdArY";
-    HttpMultiFormBody::Ptr body(new HttpMultiFormBody(argsUploader, exePath(), boundary));
+    HttpMultiFormBody::Ptr body(new HttpMultiFormBody(argsUploader, "D:/code/sr/wvp/ZLMediaKit/release/windows64/Release/Debug/www/record/rtp/requestId/2021-12-02_11-52-19.mp4", boundary));
     requesterUploader->setBody(body);
     requesterUploader->addHeader("Content-Type", HttpMultiFormBody::multiFormContentType(boundary));
     //开启请求
-    requesterUploader->startRequester("http://fanyi.baidu.com/langdetect",//url地址
+    requesterUploader->startRequester("http://192.168.2.169:9999/admin/sys-file/upload/video-playback",//url地址
                                       [](const SockException &ex,                          //网络相关的失败信息，如果为空就代表成功
                                          const Parser &parser) {                       //http回复body
                                           DebugL << "=====================HttpRequester Uploader==========================";

@@ -15,7 +15,8 @@
 #include "Common/config.h"
 #include "MP4Recorder.h"
 #include "Thread/WorkThreadPool.h"
-
+#include "Http/HttpSession.h"
+#include "Http/HttpRequester.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -38,15 +39,15 @@ void MP4Recorder::createFile() {
     closeFile();
     auto date = getTimeStr("%Y-%m-%d");
     auto time = getTimeStr("%H-%M-%S");
-    auto full_path_tmp = _folder_path + date + "/." + time + ".mp4";
-    auto full_path = _folder_path + date + "/" + time + ".mp4";
+    auto full_path_tmp = _folder_path + date + "_" + time + ".mp4";
+    auto full_path = _folder_path + date + "_" + time + ".mp4";
 
     /////record 业务逻辑//////
     _info.start_time = ::time(NULL);
     _info.file_name = time + ".mp4";
     _info.file_path = full_path;
     GET_CONFIG(string, appName, Record::kAppName);
-    _info.url = appName + "/" + _info.app + "/" + _info.stream + "/" + date + "/" + time + ".mp4";
+    _info.url = appName + "/" + _info.app + "/" + _info.stream + "/" + date + "_" + time + ".mp4";
 
     try {
         _muxer = std::make_shared<MP4Muxer>();
@@ -61,7 +62,12 @@ void MP4Recorder::createFile() {
         WarnL << ex.what();
     }
 }
-
+/*
+ * 录制文件完成
+ */
+void MP4Recorder::stopRecoder() {
+    closeFile();
+}
 void MP4Recorder::asyncClose() {
     auto muxer = _muxer;
     auto full_path_tmp = _full_path_tmp;
@@ -82,8 +88,9 @@ void MP4Recorder::asyncClose() {
         //临时文件名改成正式文件名，防止mp4未完成时被访问
         rename(full_path_tmp.data(), full_path.data());
 
-        /////record 业务逻辑//////
+        //目的是通知去上传文件
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4, info);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4Finish, info);
     });
 }
 

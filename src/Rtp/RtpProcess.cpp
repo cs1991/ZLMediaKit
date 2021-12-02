@@ -12,7 +12,7 @@
 #include "GB28181Process.h"
 #include "RtpProcess.h"
 #include "Http/HttpTSPlayer.h"
-
+#include "../../server/FFmpegSource.h"
 static constexpr char kRtpAppName[] = "rtp";
 //在创建_muxer对象前(也就是推流鉴权成功前)，需要先缓存frame，这样可以防止丢包，提高体验
 //但是同时需要控制缓冲长度，防止内存溢出。200帧数据，大概有10秒数据，应该足矣等待鉴权hook返回
@@ -37,7 +37,9 @@ RtpProcess::RtpProcess(const string &stream_id) {
     }
 
     {
-        FILE *fp = !dump_dir.empty() ? File::create_file(File::absolutePath(_media_info._streamid + ".video", dump_dir).data(), "wb") : nullptr;
+        save_path = File::absolutePath(_media_info._streamid + ".video", dump_dir);
+        mp4_path = File::absolutePath(_media_info._streamid + ".mp4", dump_dir);
+        FILE *fp = !dump_dir.empty() ? File::create_file(save_path.data(), "wb") : nullptr;
         if (fp) {
             _save_file_video.reset(fp, [](FILE *fp) {
                 fclose(fp);
@@ -46,6 +48,25 @@ RtpProcess::RtpProcess(const string &stream_id) {
     }
 }
 
+/**
+ * 设置下载的call_id
+ */
+void RtpProcess::setCallId(const std::string callId) {
+    call_id = callId;
+}
+string RtpProcess::getCallId() {
+    return call_id;
+}
+/**
+ * 下载完成，开始保存文件
+ */
+void RtpProcess::onDownloadFinish() {
+
+    if (_muxer) {
+        _muxer->stopRecoder();
+    }
+    
+}
 RtpProcess::~RtpProcess() {
     uint64_t duration = (_last_frame_time.createdTime() - _last_frame_time.elapsedTime()) / 1000;
     WarnP(this) << "RTP推流器("
@@ -62,6 +83,7 @@ RtpProcess::~RtpProcess() {
 }
 
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint32_t *dts_out) {
+    ErrorL << "RtpProcess----------------------";
     auto is_busy = _busy_flag.test_and_set();
     if (is_busy) {
         //其他线程正在执行本函数
@@ -82,18 +104,18 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
     }
 
     _total_bytes += len;
-    if (_save_file_rtp) {
-        uint16_t size = (uint16_t)len;
-        size = htons(size);
-        fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
-        fwrite((uint8_t *) data, len, 1, _save_file_rtp.get());
-    }
+    //if (_save_file_rtp) {
+    //    uint16_t size = (uint16_t)len;
+    //    size = htons(size);
+    //    fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
+    //    fwrite((uint8_t *) data, len, 1, _save_file_rtp.get());
+    //}
     if (!_process) {
         _process = std::make_shared<GB28181Process>(_media_info, this);
     }
 
     GET_CONFIG(string, dump_dir, RtpProxy::kDumpDir);
-    if (_muxer && !_muxer->isEnabled() && !dts_out && dump_dir.empty()) {
+    if (_muxer && !_muxer->isEnabled() && !dts_out && dump_dir.empty() && call_id.empty()) {
         //无人访问、且不取时间戳、不导出调试文件时，我们可以直接丢弃数据
         _last_frame_time.resetTime();
         return false;
@@ -227,7 +249,30 @@ int RtpProcess::getTotalReaderCount() {
 void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
     setDelegate(listener);
 }
+void RtpProcess::emitOnUpload() {
+    weak_ptr<RtpProcess> weak_self = shared_from_this();
+    Broadcast::PublishAuthInvoker invoker = [weak_self](const string &err, bool enableHls, bool enableMP4) {
+        auto strong_self = weak_self.lock();
+        if (!strong_self) {
+            return;
+        }
+        if (err.empty()) {
+            strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(
+                strong_self->_media_info._vhost, strong_self->_media_info._app, strong_self->_media_info._streamid,
+                0.0f, true, true, enableHls, enableMP4);
+            strong_self->_muxer->setMediaListener(strong_self);
+            strong_self->doCachedFunc();
+            InfoP(strong_self) << "允许RTP推流";
+        } else {
+            WarnP(strong_self) << "禁止RTP推流:" << err;
+        }
+    };
 
+    //触发推流鉴权事件
+    auto flag = NoticeCenter::Instance().emitEvent(
+        Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
+
+}
 void RtpProcess::emitOnPublish() {
     weak_ptr<RtpProcess> weak_self = shared_from_this();
     Broadcast::PublishAuthInvoker invoker = [weak_self](const string &err, bool enableHls, bool enableMP4) {
@@ -236,6 +281,10 @@ void RtpProcess::emitOnPublish() {
             return;
         }
         if (err.empty()) {
+            //如果call_id不为空，则说明是要下载mp4的
+            if (!strong_self->getCallId().empty()) {
+                enableMP4 = true;
+            }
             strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(strong_self->_media_info._vhost,
                                                                          strong_self->_media_info._app,
                                                                          strong_self->_media_info._streamid, 0.0f,

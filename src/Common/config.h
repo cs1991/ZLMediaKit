@@ -39,6 +39,7 @@ extern const string kBroadcastMediaChanged;
 
 //录制mp4文件成功后广播
 extern const string kBroadcastRecordMP4;
+extern const string kBroadcastRecordMP4Finish;
 #define BroadcastRecordMP4Args const RecordInfo &info
 
 // 录制 ts 文件后广播

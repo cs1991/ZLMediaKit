@@ -23,11 +23,14 @@
 
 using namespace toolkit;
 using namespace mediakit;
-
+namespace Upload {
+#define UPLOAD_FILE "UPLOAD."
+const string kUploadUrl = UPLOAD_FILE "url";
+}
 namespace Hook {
 #define HOOK_FIELD "hook."
 
-const string kEnable = HOOK_FIELD"enable";
+const string kEnable = HOOK_FIELD "enable";
 const string kTimeoutSec = HOOK_FIELD"timeoutSec";
 const string kOnPublish = HOOK_FIELD"on_publish";
 const string kOnPlay = HOOK_FIELD"on_play";
@@ -37,6 +40,7 @@ const string kOnRtspAuth = HOOK_FIELD"on_rtsp_auth";
 const string kOnStreamChanged = HOOK_FIELD"on_stream_changed";
 const string kOnStreamNotFound = HOOK_FIELD"on_stream_not_found";
 const string kOnRecordMp4 = HOOK_FIELD"on_record_mp4";
+const string kOnRecordMp4Finish = HOOK_FIELD "on_record_mp4_finish";
 const string kOnRecordTs = HOOK_FIELD"on_record_ts";
 const string kOnShellLogin = HOOK_FIELD"on_shell_login";
 const string kOnStreamNoneReader = HOOK_FIELD"on_stream_none_reader";
@@ -388,11 +392,72 @@ void installWebHook(){
         body[VHOST_KEY] = info.vhost;
         return body;
     };
-
+    //录制mp4文件成功后广播,发给wvp后台，通知下载完成
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastRecordMP4Finish, [](BroadcastRecordMP4Args) {
+        ErrorL << "hook线程的id: " << this_thread::get_id() << endl;
+        GET_CONFIG(string, hook_record_mp4, Hook::kOnRecordMp4Finish);
+        GET_CONFIG(string, upload_url, Upload::kUploadUrl);
+        if (!hook_enable || hook_record_mp4.empty()) {
+            return;
+        }
+        //上传文件
+        //////////////////////////////http upload///////////////////////
+        //创建一个Http请求器
+        HttpRequester::Ptr requesterUploader(new HttpRequester());
+        //使用POST方式请求
+        requesterUploader->setMethod("POST");
+        //设置http请求头
+        HttpArgs argsUploader;
+        bool flag = true;
+        static string boundary = "0xKhTmLbOuNdArY";
+        HttpMultiFormBody::Ptr body(new HttpMultiFormBody(argsUploader, info.file_path, boundary));
+        requesterUploader->setBody(body);
+        requesterUploader->addHeader("Content-Type", HttpMultiFormBody::multiFormContentType(boundary));
+        //开启请求
+       // upload_url = "http://192.168.2.169:9999/admin/sys-file/upload/video-playback";
+        function<void(const Value &, const string &)> func = [&flag](const Value &, const string &) { flag = false; };
+        requesterUploader->startRequester(
+            upload_url, // url地址
+            [func,info](
+                const SockException &ex, //网络相关的失败信息，如果为空就代表成功
+                const Parser &parser) { // http回复body
+                DebugL << "=====================HttpRequester Uploader==========================";
+                if (ex) {
+                    //网络相关的错误
+                    WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
+                    //执行hook
+                    ArgsType body;
+                    body["code"] = ex.getErrCode();
+                    body["msg"] = "network err:" + string(ex.what());
+                    body["streamId"] = info.stream;
+                    do_http_hook(hook_record_mp4, body, func);
+                } else {
+                    //打印http回复信息
+                    _StrPrinter printer;
+                    for (auto &pr : parser.getHeader()) {
+                        printer << pr.first << ":" << pr.second << "\r\n";
+                    }
+                    InfoL << "status:" << parser.Url() << "\r\n"
+                          << "header:\r\n"
+                          << (printer << endl) << "\r\nbody:" << parser.Content();
+                    //执行hook
+                    ArgsType body;
+                    body["code"] = 0;
+                    body["data"] = parser.Content();
+                    body["streamId"] = info.stream;
+                    do_http_hook(hook_record_mp4, body, func);
+                }
+            },
+            60);
+        while (flag) {
+            sleep(1);
+        }
+        WarnL << "upload file finish";
+    });
 #ifdef ENABLE_MP4
-    //录制mp4文件成功后广播
+    //录制mp4文件成功后广播,发给录像助手服务
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordMP4,[](BroadcastRecordMP4Args){
-        GET_CONFIG(string,hook_record_mp4,Hook::kOnRecordMp4);
+        GET_CONFIG(string, hook_record_mp4, Hook::kOnRecordMp4);
         if (!hook_enable || hook_record_mp4.empty()) {
             return;
         }

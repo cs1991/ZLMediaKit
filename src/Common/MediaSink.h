@@ -16,7 +16,7 @@
 #include "Util/TimeTicker.h"
 #include "Extension/Frame.h"
 #include "Extension/Track.h"
-
+#include "config.h"
 using namespace std;
 using namespace toolkit;
 
@@ -51,6 +51,8 @@ public:
 
     MediaSinkInterface() = default;
     ~MediaSinkInterface() override = default;
+
+    virtual void stopRecoder() {};
 };
 
 /**

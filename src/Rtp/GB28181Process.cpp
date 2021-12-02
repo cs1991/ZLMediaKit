@@ -152,7 +152,7 @@ bool GB28181Process::inputRtp(bool, const char *data, size_t data_len) {
             return true;
         }));
     }
-
+    //这里的inputRtp，最后到了onRtpSorted-->commonRtpDecoder的inputRtp--》又回到了上面的代理addDelegate,最后还是执行的onRtpDecode
     return ref->inputRtp(TrackVideo, (unsigned char *) data, data_len);
 }
 

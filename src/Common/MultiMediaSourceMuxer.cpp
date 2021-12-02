@@ -194,8 +194,14 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
             return false;
     }
 }
-
-void MultiMediaSourceMuxer::startSendRtp(MediaSource &, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port, const function<void(uint16_t local_port, const SockException &ex)> &cb){
+void MultiMediaSourceMuxer::stopRecoder() {
+    if (_mp4) {
+        _mp4->stopRecoder();
+    }
+}
+void MultiMediaSourceMuxer::startSendRtp(
+    MediaSource &, const string &dst_url, uint16_t dst_port, const string &ssrc, bool is_udp, uint16_t src_port,
+    const function<void(uint16_t local_port, const SockException &ex)> &cb) {
 #if defined(ENABLE_RTPPROXY)
     RtpSender::Ptr rtp_sender = std::make_shared<RtpSender>(atoi(ssrc.data()));
     weak_ptr<MultiMediaSourceMuxer> weak_self = shared_from_this();
@@ -436,6 +442,7 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
 
 bool MultiMediaSourceMuxer::isEnabled(){
     GET_CONFIG(uint32_t, stream_none_reader_delay_ms, General::kStreamNoneReaderDelayMS);
+    uint64_t noReaderTime = _last_check.elapsedTime();
     if (!_is_enable || _last_check.elapsedTime() > stream_none_reader_delay_ms) {
         //无人观看时，每次检查是否真的无人观看
         //有人观看时，则延迟一定时间检查一遍是否无人观看了(节省性能)

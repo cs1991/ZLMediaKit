@@ -48,6 +48,11 @@ public:
      */
     bool addTrack(const Track::Ptr & track) override;
 
+    /*
+    * 结束录制
+    */
+    virtual void stopRecoder();
+
 private:
     void createFile();
     void closeFile();
