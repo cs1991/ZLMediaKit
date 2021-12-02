@@ -85,7 +85,6 @@ protected:
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
 private:
-    void emitOnUpload();
     void emitOnPublish();
     void doCachedFunc();
 
@@ -107,8 +106,6 @@ private:
     recursive_mutex _func_mtx;
     deque<function<void()> > _cached_func;
 
-    std::string save_path;
-    std::string mp4_path;
     std::string call_id;
    
 };

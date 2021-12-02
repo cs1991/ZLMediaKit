@@ -22,7 +22,6 @@ const string kBin = FFmpeg_FIELD"bin";
 const string kCmd = FFmpeg_FIELD"cmd";
 const string kLog = FFmpeg_FIELD"log";
 const string kSnap = FFmpeg_FIELD"snap";
-const string kTrans = FFmpeg_FIELD "trans";
 
 onceToken token([]() {
 #ifdef _WIN32
@@ -36,7 +35,6 @@ onceToken token([]() {
     mINI::Instance()[kLog] = "./ffmpeg/ffmpeg.log";
     mINI::Instance()[kCmd] = "%s -re -i %s -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv %s";
     mINI::Instance()[kSnap] = "%s -i %s -y -f mjpeg -t 0.001 %s";
-    mINI::Instance()[kTrans] = "%s -i %s %s";
 });
 }
 
@@ -64,19 +62,6 @@ static bool is_local_ip(const string &ip){
 void FFmpegSource::setupRecordFlag(bool enable_hls, bool enable_mp4){
     _enable_hls = enable_hls;
     _enable_mp4 = enable_mp4;
-}
-/**
- *  视频格式转换
- */
-void FFmpegSource::transVideo(const string &input, const string &output) {
-    GET_CONFIG(string, ffmpeg_bin, FFmpeg::kBin);
-    GET_CONFIG(string, ffmpeg_trans, FFmpeg::kTrans);
-    GET_CONFIG(string, ffmpeg_log, FFmpeg::kLog);
-    char cmd[1024] = { 0 };
-    snprintf(cmd, sizeof(cmd), ffmpeg_trans.data(), ffmpeg_bin.data(), input.data(), output.data());
-    _process.run(cmd, ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log));
-    
-    ErrorL << "***********************" << cmd << "**********************************";
 }
 void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,const string &dst_url,int timeout_ms,const onPlay &cb) {
     GET_CONFIG(string,ffmpeg_bin,FFmpeg::kBin);

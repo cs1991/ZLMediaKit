@@ -37,9 +37,9 @@ RtpProcess::RtpProcess(const string &stream_id) {
     }
 
     {
-        save_path = File::absolutePath(_media_info._streamid + ".video", dump_dir);
-        mp4_path = File::absolutePath(_media_info._streamid + ".mp4", dump_dir);
-        FILE *fp = !dump_dir.empty() ? File::create_file(save_path.data(), "wb") : nullptr;
+        FILE *fp = !dump_dir.empty()
+            ? File::create_file(File::absolutePath(_media_info._streamid + ".video", dump_dir).data(), "wb")
+            : nullptr;
         if (fp) {
             _save_file_video.reset(fp, [](FILE *fp) {
                 fclose(fp);
@@ -83,7 +83,7 @@ RtpProcess::~RtpProcess() {
 }
 
 bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data, size_t len, const struct sockaddr *addr, uint32_t *dts_out) {
-    ErrorL << "RtpProcess----------------------";
+
     auto is_busy = _busy_flag.test_and_set();
     if (is_busy) {
         //其他线程正在执行本函数
@@ -97,6 +97,7 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
     });
 
     if (!_sock) {
+        ErrorL << "RtpProcess-----inputRtp-----------------";
         //第一次运行本函数
         _sock = sock;
         _addr = *addr;
@@ -104,12 +105,12 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
     }
 
     _total_bytes += len;
-    //if (_save_file_rtp) {
-    //    uint16_t size = (uint16_t)len;
-    //    size = htons(size);
-    //    fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
-    //    fwrite((uint8_t *) data, len, 1, _save_file_rtp.get());
-    //}
+    if (_save_file_rtp) {
+        uint16_t size = (uint16_t)len;
+        size = htons(size);
+        fwrite((uint8_t *) &size, 2, 1, _save_file_rtp.get());
+        fwrite((uint8_t *) data, len, 1, _save_file_rtp.get());
+    }
     if (!_process) {
         _process = std::make_shared<GB28181Process>(_media_info, this);
     }
@@ -248,30 +249,6 @@ int RtpProcess::getTotalReaderCount() {
 
 void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
     setDelegate(listener);
-}
-void RtpProcess::emitOnUpload() {
-    weak_ptr<RtpProcess> weak_self = shared_from_this();
-    Broadcast::PublishAuthInvoker invoker = [weak_self](const string &err, bool enableHls, bool enableMP4) {
-        auto strong_self = weak_self.lock();
-        if (!strong_self) {
-            return;
-        }
-        if (err.empty()) {
-            strong_self->_muxer = std::make_shared<MultiMediaSourceMuxer>(
-                strong_self->_media_info._vhost, strong_self->_media_info._app, strong_self->_media_info._streamid,
-                0.0f, true, true, enableHls, enableMP4);
-            strong_self->_muxer->setMediaListener(strong_self);
-            strong_self->doCachedFunc();
-            InfoP(strong_self) << "允许RTP推流";
-        } else {
-            WarnP(strong_self) << "禁止RTP推流:" << err;
-        }
-    };
-
-    //触发推流鉴权事件
-    auto flag = NoticeCenter::Instance().emitEvent(
-        Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
-
 }
 void RtpProcess::emitOnPublish() {
     weak_ptr<RtpProcess> weak_self = shared_from_this();
