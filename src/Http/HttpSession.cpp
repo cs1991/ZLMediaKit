@@ -22,12 +22,14 @@ using namespace toolkit;
 namespace mediakit {
 
 HttpSession::HttpSession(const Socket::Ptr &pSock) : TcpSession(pSock) {
+    InfoL << "HttpSession::HttpSession() 对象创建";
     TraceP(this);
     GET_CONFIG(uint32_t,keep_alive_sec,Http::kKeepAliveSecond);
     pSock->setSendTimeOutSecond(keep_alive_sec);
 }
 
 HttpSession::~HttpSession() {
+    InfoL << "HttpSession::~HttpSession() 对象销毁";
     TraceP(this);
 }
 
