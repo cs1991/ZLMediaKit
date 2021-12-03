@@ -368,6 +368,7 @@ void HttpSession::Handle_Req_GET(ssize_t &content_len) {
 }
 
 void HttpSession::Handle_Req_GET_l(ssize_t &content_len, bool sendBody) {
+    InfoL << "HttpSession::Handle_Req_GET_l";
     //先看看是否为WebSocket请求
     if (checkWebSocket()) {
         content_len = -1;
@@ -653,6 +654,7 @@ bool HttpSession::emitHttpEvent(bool doInvoke){
 }
 
 void HttpSession::Handle_Req_POST(ssize_t &content_len) {
+    InfoL << "HttpSession::Handle_Req_POST";
     GET_CONFIG(size_t,maxReqSize,Http::kMaxReqSize);
 
     ssize_t totalContentLen = _parser["Content-Length"].empty() ? -1 : atoll(_parser["Content-Length"].data());
