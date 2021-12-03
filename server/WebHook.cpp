@@ -140,7 +140,7 @@ string getVhost(const HttpArgs &value) {
 void do_http_hook(const string &url,const ArgsType &body,const function<void(const Value &,const string &)> &func){
     GET_CONFIG(string, mediaServerId, General::kMediaServerId);
     GET_CONFIG(float, hook_timeoutSec, Hook::kTimeoutSec);
-
+    InfoL << "do_http_hook:::url="<<url;
     const_cast<ArgsType &>(body)["mediaServerId"] = mediaServerId;
     HttpRequester::Ptr requester(new HttpRequester);
     requester->setMethod("POST");
@@ -221,6 +221,7 @@ void installWebHook(){
     GET_CONFIG(string,hook_adminparams,Hook::kAdminParams);
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){
+        InfoL << "允许RTP触发推流鉴权事件  kBroadcastMediaPublish";
         GET_CONFIG(string,hook_publish,Hook::kOnPublish);
         GET_CONFIG(bool,toHls,General::kPublishToHls);
         GET_CONFIG(bool,toMP4,General::kPublishToMP4);
@@ -343,8 +344,11 @@ void installWebHook(){
 
     //监听rtsp、rtmp源注册或注销事件
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaChanged,[](BroadcastMediaChangedArgs){
+        InfoL << "媒体流change:::kBroadcastMediaChanged";
         GET_CONFIG(string,hook_stream_chaned,Hook::kOnStreamChanged);
         if(!hook_enable || hook_stream_chaned.empty()){
+            ErrorL << "媒体流change:::error:::hookenable=" << hook_enable
+                   << "    hook_stream_chaned=" << hook_stream_chaned;
             return;
         }
         ArgsType body;

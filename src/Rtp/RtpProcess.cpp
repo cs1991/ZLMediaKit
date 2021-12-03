@@ -97,7 +97,7 @@ bool RtpProcess::inputRtp(bool is_udp, const Socket::Ptr &sock, const char *data
     });
 
     if (!_sock) {
-        ErrorL << "RtpProcess-----inputRtp-----------------";
+        ErrorL << "RtpProcess-----inputRtp----start-------------";
         //第一次运行本函数
         _sock = sock;
         _addr = *addr;
@@ -273,7 +273,7 @@ void RtpProcess::emitOnPublish() {
             WarnP(strong_self) << "禁止RTP推流:" << err;
         }
     };
-
+    InfoL << "允许RTP触发推流鉴权事件 emitEvent";
     //触发推流鉴权事件
     auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
     if (!flag) {
