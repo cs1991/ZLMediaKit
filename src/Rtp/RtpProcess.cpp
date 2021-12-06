@@ -273,15 +273,22 @@ void RtpProcess::emitOnPublish() {
             WarnP(strong_self) << "禁止RTP推流:" << err;
         }
     };
-    InfoL << "允许RTP触发推流鉴权事件 emitEvent";
-    //触发推流鉴权事件
-    auto flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
-    if (!flag) {
-        //该事件无人监听,默认不鉴权
-        GET_CONFIG(bool, toHls, General::kPublishToHls);
-        GET_CONFIG(bool, toMP4, General::kPublishToMP4);
-        invoker("", toHls, toMP4);
+    //nvr的录像下载不用鉴权，直接授权
+    if (call_id.empty()) {
+        InfoL << "允许RTP触发推流鉴权事件 emitEvent";
+        //触发推流鉴权事件
+        auto flag = NoticeCenter::Instance().emitEvent(
+            Broadcast::kBroadcastMediaPublish, _media_info, invoker, static_cast<SockInfo &>(*this));
+        if (!flag) {
+            //该事件无人监听,默认不鉴权
+            GET_CONFIG(bool, toHls, General::kPublishToHls);
+            GET_CONFIG(bool, toMP4, General::kPublishToMP4);
+            invoker("", toHls, toMP4);
+        }
+    } else {
+        invoker("", false, true);
     }
+    
 }
 
 MediaOriginType RtpProcess::getOriginType(MediaSource &sender) const{

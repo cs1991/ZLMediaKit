@@ -11,20 +11,20 @@
 #ifndef FFMPEG_SOURCE_H
 #define FFMPEG_SOURCE_H
 
-#include <mutex>
-#include <memory>
-#include <functional>
+#include "Common/MediaSource.h"
+#include "Network/Socket.h"
 #include "Process.h"
 #include "Util/TimeTicker.h"
-#include "Network/Socket.h"
-#include "Common/MediaSource.h"
+#include <functional>
+#include <memory>
+#include <mutex>
 
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
 namespace FFmpeg {
-    extern const string kSnap;
+extern const string kSnap;
 }
 
 class FFmpegSnap {
@@ -34,13 +34,17 @@ public:
     /// \param save_path 截图jpeg文件保存路径
     /// \param timeout_sec 生成截图超时时间(防止阻塞太久)
     /// \param cb 生成截图成功与否回调
-    static void makeSnap(const string &play_url, const string &save_path, float timeout_sec, const function<void(bool)> &cb);
+    static void
+    makeSnap(const string &play_url, const string &save_path, float timeout_sec, const function<void(bool)> &cb);
+
 private:
     FFmpegSnap() = delete;
     ~FFmpegSnap() = delete;
 };
 
-class FFmpegSource : public std::enable_shared_from_this<FFmpegSource> , public MediaSourceEventInterceptor{
+class FFmpegSource
+    : public std::enable_shared_from_this<FFmpegSource>
+    , public MediaSourceEventInterceptor {
 public:
     typedef shared_ptr<FFmpegSource> Ptr;
     typedef function<void(const SockException &ex)> onPlay;
@@ -61,7 +65,8 @@ public:
      * @param timeout_ms 等待结果超时时间，单位毫秒
      * @param cb 成功与否回调
      */
-    void play(const string &ffmpeg_cmd_key, const string &src_url, const string &dst_url, int timeout_ms, const onPlay &cb);
+    void
+    play(const string &ffmpeg_cmd_key, const string &src_url, const string &dst_url, int timeout_ms, const onPlay &cb);
 
     /**
      * 设置录制
@@ -70,15 +75,14 @@ public:
      */
     void setupRecordFlag(bool enable_hls, bool enable_mp4);
 
-
 private:
-    void findAsync(int maxWaitMS ,const function<void(const MediaSource::Ptr &src)> &cb);
+    void findAsync(int maxWaitMS, const function<void(const MediaSource::Ptr &src)> &cb);
     void startTimer(int timeout_ms);
     void onGetMediaSource(const MediaSource::Ptr &src);
 
     ///////MediaSourceEvent override///////
     // 关闭
-    bool close(MediaSource &sender,bool force) override;
+    bool close(MediaSource &sender, bool force) override;
     // 获取媒体源类型
     MediaOriginType getOriginType(MediaSource &sender) const override;
     //获取媒体源url或者文件路径
@@ -100,5 +104,4 @@ private:
     Ticker _replay_ticker;
 };
 
-
-#endif //FFMPEG_SOURCE_H
+#endif // FFMPEG_SOURCE_H
