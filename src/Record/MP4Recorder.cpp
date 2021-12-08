@@ -17,7 +17,6 @@
 #include "Thread/WorkThreadPool.h"
 #include "Http/HttpSession.h"
 #include "Http/HttpRequester.h"
-#include "../../server/FFmpegSource.h"
 using namespace toolkit;
 
 namespace mediakit {
@@ -47,6 +46,7 @@ void MP4Recorder::createFile() {
     _info.start_time = ::time(NULL);
     _info.file_name = time + ".mp4";
     _info.file_path = full_path;
+    _info.file_path_temp = full_path_tmp;
     GET_CONFIG(string, appName, Record::kAppName);
     _info.url = appName + "/" + _info.app + "/" + _info.stream + ".mp4";
 
@@ -86,21 +86,7 @@ void MP4Recorder::asyncClose() {
             File::delete_file(full_path_tmp.data());
             return;
         }
-        FFmpegSnap::transVideo(full_path_tmp, full_path, 1280, 720, [full_path_tmp, full_path, info](bool success) {
-                if (success) {
-                    //转码成功
-                    DebugL << "mp4压缩成功：" << full_path;
-                    File::delete_file(full_path_tmp.data());
-                } else {
-                    DebugL << "mp4压缩失败:" << full_path;
-                    //临时文件名改成正式文件名，防止mp4未完成时被访问
-                    rename(full_path_tmp.data(), full_path.data());
-                }
-                //目的是通知去上传文件
-                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4, info);
-                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4Finish, info);
-            });
-        
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4Finish, info);
     });
 }
 

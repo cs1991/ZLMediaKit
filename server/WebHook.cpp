@@ -20,7 +20,7 @@
 #include "Http/HttpSession.h"
 #include "WebHook.h"
 #include "WebApi.h"
-
+#include "FFmpegSource.h"
 using namespace toolkit;
 using namespace mediakit;
 namespace Upload {
@@ -401,64 +401,78 @@ void installWebHook(){
         ErrorL << "hook线程的id: " << this_thread::get_id() << endl;
         GET_CONFIG(string, hook_record_mp4, Hook::kOnRecordMp4Finish);
         GET_CONFIG(string, upload_url, Upload::kUploadUrl);
-        if (!hook_enable || hook_record_mp4.empty()) {
-            return;
-        }
-        //上传文件
-        //////////////////////////////http upload///////////////////////
-        //创建一个Http请求器
-        HttpRequester::Ptr requesterUploader(new HttpRequester());
-        //使用POST方式请求
-        requesterUploader->setMethod("POST");
-        //设置http请求头
-        HttpArgs argsUploader;
-        bool flag = true;
-        static string boundary = "0xKhTmLbOuNdArY";
-        HttpMultiFormBody::Ptr body(new HttpMultiFormBody(argsUploader, info.file_path, boundary));
-        requesterUploader->setBody(body);
-        requesterUploader->addHeader("Content-Type", HttpMultiFormBody::multiFormContentType(boundary));
-        //开启请求
-       // upload_url = "http://192.168.2.169:9999/admin/sys-file/upload/video-playback";
-        function<void(const Value &, const string &)> func = [&flag](const Value &, const string &) { flag = false; };
-        requesterUploader->startRequester(
-            upload_url, // url地址
-            [func, info, &flag](
-                const SockException &ex, //网络相关的失败信息，如果为空就代表成功
-                const Parser &parser) { // http回复body
-                DebugL << "=====================HttpRequester Uploader==========================";
-                if (ex) {
-                    //网络相关的错误
-                    WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
-                    //执行hook
-                    ArgsType body;
-                    body["code"] = ex.getErrCode();
-                    body["msg"] = "network err:" + string(ex.what());
-                    body["streamId"] = info.stream;
-                    do_http_hook(hook_record_mp4, body, func);
-                } else {
-                    //打印http回复信息
-                    _StrPrinter printer;
-                    for (auto &pr : parser.getHeader()) {
-                        printer << pr.first << ":" << pr.second << "\r\n";
+        FFmpegSnap::transVideo(info.file_path_temp, info.file_path, 1280, 720, [info](bool success) {
+            if (success) {
+                //转码成功
+                DebugL << "mp4压缩成功：" << info.file_path;
+                File::delete_file(info.file_path_temp.data());
+            } else {
+                ErrorL << "*****mp4压缩失败:" << info.file_path;
+                //临时文件名改成正式文件名，防止mp4未完成时被访问
+                rename(info.file_path_temp.data(), info.file_path.data());
+            }
+            //目的是通知去上传文件
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordMP4, info);
+            if (!hook_enable || hook_record_mp4.empty()) {
+                return;
+            }
+            //上传文件
+            //////////////////////////////http upload///////////////////////
+            //创建一个Http请求器
+            HttpRequester::Ptr requesterUploader(new HttpRequester());
+            //使用POST方式请求
+            requesterUploader->setMethod("POST");
+            //设置http请求头
+            HttpArgs argsUploader;
+            bool flag = true;
+            static string boundary = "0xKhTmLbOuNdArY";
+            HttpMultiFormBody::Ptr body(new HttpMultiFormBody(argsUploader, info.file_path, boundary));
+            requesterUploader->setBody(body);
+            requesterUploader->addHeader("Content-Type", HttpMultiFormBody::multiFormContentType(boundary));
+            //开启请求
+            // upload_url = "http://192.168.2.169:9999/admin/sys-file/upload/video-playback";
+            function<void(const Value &, const string &)> func
+                = [&flag](const Value &, const string &) { flag = false; };
+            requesterUploader->startRequester(
+                upload_url, // url地址
+                [func, info, &flag](
+                    const SockException &ex, //网络相关的失败信息，如果为空就代表成功
+                    const Parser &parser) { // http回复body
+                    DebugL << "=====================HttpRequester Uploader==========================";
+                    if (ex) {
+                        //网络相关的错误
+                        WarnL << "network err:" << ex.getErrCode() << " " << ex.what();
+                        //执行hook
+                        ArgsType body;
+                        body["code"] = ex.getErrCode();
+                        body["msg"] = "network err:" + string(ex.what());
+                        body["streamId"] = info.stream;
+                        do_http_hook(hook_record_mp4, body, func);
+                    } else {
+                        //打印http回复信息
+                        _StrPrinter printer;
+                        for (auto &pr : parser.getHeader()) {
+                            printer << pr.first << ":" << pr.second << "\r\n";
+                        }
+                        InfoL << "status:" << parser.Url() << "\r\n"
+                              << "header:\r\n"
+                              << (printer << endl) << "\r\nbody:" << parser.Content();
+                        //执行hook
+                        ArgsType body;
+                        body["code"] = 0;
+                        body["data"] = parser.Content();
+                        body["streamId"] = info.stream;
+                        do_http_hook(hook_record_mp4, body, func);
                     }
-                    InfoL << "status:" << parser.Url() << "\r\n"
-                          << "header:\r\n"
-                          << (printer << endl) << "\r\nbody:" << parser.Content();
-                    //执行hook
-                    ArgsType body;
-                    body["code"] = 0;
-                    body["data"] = parser.Content();
-                    body["streamId"] = info.stream;
-                    do_http_hook(hook_record_mp4, body, func);
-                }
-                DebugL << "mp4提交完成，删除文件：" << info.file_path;
-                flag = false;
-            },
-            60);
-        while (flag) {
-            sleep(1);
-        }
-        WarnL << "upload file finish";
+                    DebugL << "mp4提交完成，删除文件：" << info.file_path;
+                    flag = false;
+                },
+                60);
+           while (flag) {
+               sleep(1);
+           }
+            WarnL << "upload file finish";
+        });
     });
 #ifdef ENABLE_MP4
     //录制mp4文件成功后广播,发给录像助手服务
