@@ -422,7 +422,7 @@ void installWebHook(){
         function<void(const Value &, const string &)> func = [&flag](const Value &, const string &) { flag = false; };
         requesterUploader->startRequester(
             upload_url, // url地址
-            [func,info](
+            [func, info, &flag](
                 const SockException &ex, //网络相关的失败信息，如果为空就代表成功
                 const Parser &parser) { // http回复body
                 DebugL << "=====================HttpRequester Uploader==========================";
@@ -451,6 +451,8 @@ void installWebHook(){
                     body["streamId"] = info.stream;
                     do_http_hook(hook_record_mp4, body, func);
                 }
+                DebugL << "mp4提交完成，删除文件：" << info.file_path;
+                flag = false;
             },
             60);
         while (flag) {

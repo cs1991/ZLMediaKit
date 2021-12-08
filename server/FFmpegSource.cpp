@@ -22,7 +22,6 @@ const string kBin = FFmpeg_FIELD "bin";
 const string kCmd = FFmpeg_FIELD "cmd";
 const string kLog = FFmpeg_FIELD "log";
 const string kSnap = FFmpeg_FIELD "snap";
-
 onceToken token([]() {
 #ifdef _WIN32
     string ffmpeg_bin = trim(System::execute("where ffmpeg"));
@@ -298,7 +297,42 @@ void FFmpegSource::onGetMediaSource(const MediaSource::Ptr &src) {
         }
     }
 }
+void FFmpegSnap::transVideo(
+    const string &input, const string &save_path, int width, int height, const function<void(bool)> &cb) {
+    GET_CONFIG(string, ffmpeg_bin, FFmpeg::kBin);
+    GET_CONFIG(string, ffmpeg_log, FFmpeg::kLog);
+    string ffmpeg_trans = "%s -i %s -vf scale=%s:%s %s";
+    Ticker ticker;
+    WorkThreadPool::Instance().getPoller()->async([ffmpeg_trans,input, save_path, width, height, cb, ticker]() {
+        auto elapsed_ms = ticker.elapsedTime();
+        if (elapsed_ms > 5 * 1000) {
+            //超时，后台线程负载太高，当代太久才启动该任务
+            cb(false);
+            return;
+        }
+        char cmd[1024] = { 0 };
+        snprintf(cmd, sizeof(cmd), ffmpeg_trans.data(), ffmpeg_bin.data(), input.data(), to_string(width).data(),
+            to_string(height).data(), save_path.data());
+        std::shared_ptr<Process> process = std::make_shared<Process>();
+        process->run(cmd, ffmpeg_log.empty() ? "" : File::absolutePath("", ffmpeg_log));
+        //定时器延时应该减去后台任务启动的延时
+        auto delayTask = EventPollerPool::Instance().getPoller()->doDelayTask(
+            (uint64_t)(5 * 1000 - elapsed_ms), [process, cb]() {
+                if (process->wait(false)) {
+                    // FFmpeg进程还在运行，超时就关闭它
+                    process->kill(2000);
+                }
+                return 0;
+            });
 
+        //等待FFmpeg进程退出
+        process->wait(true);
+        // FFmpeg进程退出了可以取消定时器了
+        delayTask->cancel();
+        //执行回调函数
+        cb(process->exit_code() == 0);
+    });
+}
 void FFmpegSnap::makeSnap(
     const string &play_url, const string &save_path, float timeout_sec, const function<void(bool)> &cb) {
     GET_CONFIG(string, ffmpeg_bin, FFmpeg::kBin);

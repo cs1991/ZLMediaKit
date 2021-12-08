@@ -38,12 +38,9 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
         case Recorder::type_mp4: {
             GET_CONFIG(string, recordPath, Record::kFilePath);
             GET_CONFIG(string, recordAppName, Record::kAppName);
+            auto date = getTimeStr("%Y-%m-%d");
             string mp4FilePath;
-            if (enableVhost) {
-                mp4FilePath = vhost + "/" + recordAppName + "/" + app + "/" + stream_id + "/";
-            } else {
-                mp4FilePath = recordAppName + "/" + app + "/" + stream_id + "/";
-            }
+            mp4FilePath = recordAppName + "/" + date  + "/" ;
             //Here we use the customized file path.
             if (!customized_path.empty()) {
                 return File::absolutePath(mp4FilePath, customized_path);

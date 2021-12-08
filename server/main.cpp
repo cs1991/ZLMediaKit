@@ -25,7 +25,7 @@
 #include "Rtp/RtpServer.h"
 #include "WebApi.h"
 #include "WebHook.h"
-
+#include <thread>
 #if defined(ENABLE_WEBRTC)
 #include "../webrtc/WebRtcTransport.h"
 #include "../webrtc/WebRtcSession.h"
@@ -175,7 +175,22 @@ public:
 //全局变量，在WebApi中用于保存配置文件用
 string g_ini_file;
 
-int start_main(int argc,char *argv[]) {
+
+void startClearFile() {
+    GET_CONFIG(string, recordPath, Record::kFilePath);
+    GET_CONFIG(string, recordAppName, Record::kAppName);
+    string mp4FilePath = File::absolutePath(recordAppName, recordPath);
+    std::thread fileThread([mp4FilePath]() {
+        while (true) {
+            ErrorL << "**************删除过期的录像文件*******" << mp4FilePath;
+            File::delete_timeout_file(mp4FilePath.data(), 5 * 60);
+            //休眠0.5 ms
+            usleep(5*60*1000*1000);
+        }
+    });
+    fileThread.detach();
+}
+int start_main(int argc, char *argv[]) {
     {
         CMD_main cmd_main;
         try {
@@ -331,6 +346,8 @@ int start_main(int argc,char *argv[]) {
         installWebHook();
         InfoL << "已启动http hook 接口";
 
+        //删除过期的录像文件
+        startClearFile();
         //设置退出信号处理函数
         static semaphore sem;
         signal(SIGINT, [](int) {

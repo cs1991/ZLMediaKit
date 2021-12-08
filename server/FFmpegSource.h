@@ -37,6 +37,9 @@ public:
     static void
     makeSnap(const string &play_url, const string &save_path, float timeout_sec, const function<void(bool)> &cb);
 
+        static void
+    transVideo(const string &input, const string &save_path, int width,int height, const function<void(bool)> &cb);
+
 private:
     FFmpegSnap() = delete;
     ~FFmpegSnap() = delete;
