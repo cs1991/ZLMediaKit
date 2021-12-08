@@ -17,7 +17,7 @@
 #include "Thread/WorkThreadPool.h"
 #include "Http/HttpSession.h"
 #include "Http/HttpRequester.h"
-#include "../server/FFmpegSource.h"
+#include "../../server/FFmpegSource.h"
 using namespace toolkit;
 
 namespace mediakit {
