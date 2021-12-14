@@ -229,7 +229,6 @@ const Session::Ptr& UdpServer::createSession(const PeerIdType &id, const Buffer:
             if (id == makeSockId(addr, addr_len)) {
                 if (auto strong_session = weak_session.lock()) {
                     emitSessionRecv(strong_session, buf);
-                    InfoL << "______________________________________________";
                 }
                 return;
             }

@@ -752,6 +752,7 @@ void installWebApi() {
                                     int rtp_type,
                                     float timeout_sec,
                                     const function<void(const SockException &ex,const string &key)> &cb){
+        InfoL << "stream::" << stream << "   :::   url=" << url;
         auto key = getProxyKey(vhost,app,stream);
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         if(s_proxyMap.find(key) != s_proxyMap.end()){
