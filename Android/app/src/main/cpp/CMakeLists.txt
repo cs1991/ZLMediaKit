@@ -34,6 +34,7 @@ else()
     add_definitions(-DWIN32_LEAN_AND_MEAN -DMP4V2_NO_STDINT_DEFS)
 endif ()
 
+
 set(ENABLE_HLS true)
 set(ENABLE_OPENSSL true)
 set(ENABLE_MYSQL false)

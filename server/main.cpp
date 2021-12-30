@@ -180,10 +180,12 @@ void startClearFile() {
     GET_CONFIG(string, recordPath, Record::kFilePath);
     GET_CONFIG(string, recordAppName, Record::kAppName);
     string mp4FilePath = File::absolutePath(recordAppName, recordPath);
-    std::thread fileThread([mp4FilePath]() {
+    string hkPath = File::absolutePath("hcdownload", recordPath);
+    std::thread fileThread([mp4FilePath,hkPath]() {
         while (true) {
             ErrorL << "**************删除过期的录像文件*******" << mp4FilePath;
             File::delete_timeout_file(mp4FilePath.data(), 5 * 60);
+            File::delete_timeout_file(hkPath.data(), 5 * 60);
             //休眠0.5 ms
             usleep(5*60*1000*1000);
         }

@@ -16,6 +16,8 @@
 #include <string>
 #include "util.h"
 #include <functional>
+#include <sys/types.h>
+#include <sys/stat.h>
 using namespace std;
 
 #if defined(__linux__)
@@ -65,6 +67,7 @@ namespace toolkit {
 
 class File {
 public:
+    static int isFileExit(const char *file_name);
     //创建路径
     static bool create_path(const char *file, unsigned int mod);
     //新建文件，目录文件夹自动生成

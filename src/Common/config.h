@@ -120,9 +120,9 @@ extern const string kBroadcastReloadConfig;
 //监听某个配置发送变更
 #define LISTEN_RELOAD_KEY(arg, key, ...)                                          \
     do {                                                                          \
-        static onceToken s_token_listen([](){                                     \
+        static onceToken s_token_listen([&](){                                     \
             NoticeCenter::Instance().addListener(ReloadConfigTag,                 \
-                Broadcast::kBroadcastReloadConfig,[](BroadcastReloadConfigArgs) { \
+                Broadcast::kBroadcastReloadConfig,[&](BroadcastReloadConfigArgs) { \
                 __VA_ARGS__;                                                      \
             });                                                                   \
         });                                                                       \
@@ -137,7 +137,7 @@ extern const string kBroadcastReloadConfig;
 #define GET_CONFIG_FUNC(type, arg, key, ...)               \
     static type arg;                                       \
     do {                                                   \
-        static onceToken s_token_set([](){                 \
+        static onceToken s_token_set([&](){                 \
             static auto lam = __VA_ARGS__ ;                \
             static auto arg##_str = mINI::Instance()[key]; \
             arg = lam(arg##_str);                          \

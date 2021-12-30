@@ -21,15 +21,12 @@
 #include "WebHook.h"
 #include "WebApi.h"
 #include "FFmpegSource.h"
+
 using namespace toolkit;
 using namespace mediakit;
-namespace Upload {
-#define UPLOAD_FILE "UPLOAD."
-const string kUploadUrl = UPLOAD_FILE "url";
-}
 namespace Hook {
 #define HOOK_FIELD "hook."
-
+const string kUploadUrl = HOOK_FIELD "uploadUrl";
 const string kEnable = HOOK_FIELD "enable";
 const string kTimeoutSec = HOOK_FIELD"timeoutSec";
 const string kOnPublish = HOOK_FIELD"on_publish";
@@ -51,6 +48,7 @@ const string kAdminParams = HOOK_FIELD"admin_params";
 const string kAliveInterval = HOOK_FIELD"alive_interval";
 
 onceToken token([](){
+    mINI::Instance()[kUploadUrl] = "";
     mINI::Instance()[kEnable] = false;
     mINI::Instance()[kTimeoutSec] = 10;
     //默认hook地址设置为空，采用默认行为(例如不鉴权)
@@ -400,7 +398,7 @@ void installWebHook(){
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastRecordMP4Finish, [](BroadcastRecordMP4Args) {
         ErrorL << "hook线程的id: " << this_thread::get_id() << endl;
         GET_CONFIG(string, hook_record_mp4, Hook::kOnRecordMp4Finish);
-        GET_CONFIG(string, upload_url, Upload::kUploadUrl);
+        GET_CONFIG(string, upload_url, Hook::kUploadUrl);
         FFmpegSnap::transVideo(info.file_path_temp, info.file_path, 1280, 720, [info](bool success) {
             if (success) {
                 //转码成功

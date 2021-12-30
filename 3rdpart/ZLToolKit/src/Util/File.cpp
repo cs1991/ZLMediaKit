@@ -107,6 +107,19 @@ int closedir(DIR *d) {
 
 namespace toolkit {
 
+    /**
+    *判断文件是否存在，不存在返回-1，存在返回0，是目录返回1
+    */
+ int File::isFileExit(const char *file_name) {
+    struct stat info;
+    if (stat(file_name, &info) != 0) { // does not exist
+        return -1;
+    } else if (info.st_mode & S_IFDIR) { // directory
+        return 1;
+    } else {
+        return 0;
+    }  
+ }
 FILE *File::create_file(const char *file, const char *mode) {
     std::string path = file;
     std::string dir;

@@ -135,7 +135,7 @@ void UdpServer::onRead_l(bool is_server_fd, const UdpServer::PeerIdType &id, con
 
 #if !defined(NDEBUG)
         if (!is_new) {
-            TraceL << "udp packet incoming from " << (is_server_fd ? "server fd" : "other peer fd");
+            //TraceL << "udp packet incoming from " << (is_server_fd ? "server fd" : "other peer fd");
         }
 #endif
     }

@@ -1,6 +1,6 @@
 project(ZLMediaKit)
 cmake_minimum_required(VERSION 3.1.3)
-#使能c++11
+#使能 c++11
 set(CMAKE_CXX_STANDARD 11)
 #加载自定义模块
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -68,6 +68,7 @@ option(ENABLE_WEBRTC "Enable WebRTC" true)
 option(ENABLE_PLAYER "Enable Player" true)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" true)
 option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" false)
+option(ENABLE_HCSDK "Enable HCSDK" true)
 
 if (MSVC AND ENABLE_MSVC_MT)
     set(CompilerFlags
@@ -311,6 +312,7 @@ if (ENABLE_WEBRTC)
     endif ()
 endif ()
 
+
 #ios不编译可执行程序
 if (IOS)
     return()
@@ -321,6 +323,13 @@ if (ENABLE_TESTS)
     add_subdirectory(tests)
 endif ()
 
+#海康服务
+if (ENABLE_HCSDK)
+    message("----添加海康模块")
+    set(HC_TOOL_LIB zltoolkit)
+    add_subdirectory(server_hk)
+endif()
+
 #主服务器
 if (ENABLE_SERVER)
     add_subdirectory(server)
@@ -330,3 +339,4 @@ endif ()
 if (ENABLE_PLAYER)
     add_subdirectory(player)
 endif ()
+

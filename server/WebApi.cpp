@@ -34,6 +34,7 @@
 #include "Thread/WorkThreadPool.h"
 #include "Rtp/RtpSelector.h"
 #include "FFmpegSource.h"
+
 #if defined(ENABLE_RTPPROXY)
 #include "Rtp/RtpServer.h"
 #endif
@@ -42,6 +43,9 @@
 #include "../webrtc/WebRtcPusher.h"
 #include "../webrtc/WebRtcEchoTest.h"
 #endif
+//#ifdef ENABLE_HCSDK
+#include "../server_hk/hcapi.h"
+//#endif
 
 using namespace toolkit;
 using namespace mediakit;
@@ -1436,6 +1440,61 @@ void installWebApi() {
     api_regist("/index/hook/on_server_keepalive",[](API_ARGS_JSON){
         //心跳hook
     });
+
+    api_regist("/index/api/hk_download", [](API_ARGS_MAP) {
+        CHECK_ARGS("deviceId","user","pwd","ip","port","channel", "start", "end");
+        string deviceId = allArgs["deviceId"];
+        int channel = allArgs["channel"];
+        string start = allArgs["start"];
+        string end = allArgs["end"];
+        const string user = allArgs["user"];
+        string pwd = allArgs["pwd"];
+        string ip = allArgs["ip"];
+        string port = allArgs["port"];
+        string fileName;
+        string error;
+        bool ret = HcApi::get_instance().downloadFileByTime(deviceId, user,pwd,ip,port,channel, start, end, fileName,error);
+        if (!ret) {
+            val["code"] = API::OtherFailed;
+            val["msg"] =error.empty()? "下载失败" : error;
+        }
+        val["fileName"] = fileName;
+    });
+
+    //  api_regist("/index/hcsdk/play", [](API_ARGS_JSON) {
+    //    CHECK_ARGS("deviceId", "channel", "stream_id", "port");
+    //    string deviceId = allArgs["deviceId"];
+    //    int channel = allArgs["channel"];
+
+    //    bool ret = HcApi::get_instance().loginDevice(deviceId);
+    //    if (!ret) {
+    //        val["code"] = API::OtherFailed;
+    //        val["msg"] = "下载失败：登录失败";
+    //    }
+
+    //    auto stream_id = allArgs["stream_id"];
+    //    lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+    //    if (s_rtpServerMap.find(stream_id) != s_rtpServerMap.end()) {
+    //        //为了防止RtpProcess所有权限混乱的问题，不允许重复添加相同的stream_id
+    //        throw InvalidArgsException("该stream_id已存在");
+    //    }
+    //    RtpServer::Ptr server = std::make_shared<RtpServer>();
+    //    server->start(allArgs["port"], stream_id, false);
+
+    //    server->setOnDetach([stream_id]() {
+    //        //设置rtp超时移除事件
+    //        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
+    //        s_rtpServerMap.erase(stream_id);
+    //    });
+    //    //保存对象
+    //    s_rtpServerMap.emplace(stream_id, server);
+
+    //    ret = HcApi::get_instance().startRealPlay(deviceId, channel, server->getPort());
+    //    if (!ret) {
+    //        val["code"] = API::OtherFailed;
+    //        val["msg"] = "播放失败";
+    //    }
+    //});
 }
 
 void unInstallWebApi(){
