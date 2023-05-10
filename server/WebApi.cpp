@@ -760,9 +760,14 @@ void installWebApi() {
         auto key = getProxyKey(vhost,app,stream);
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         if(s_proxyMap.find(key) != s_proxyMap.end()){
-            //已经在拉流了
-            cb(SockException(Err_success),key);
-            return;
+            string urltemp = s_proxyMap.find(key)->second->getOriginUrl(*MediaSource::NullMediaSource);
+            if (urltemp.compare(url) != 0) {
+                //s_proxyMap.find(key)->second->close(*MediaSource::NullMediaSource, true);
+            } else {
+                //已经在拉流了
+                cb(SockException(Err_success), key);
+                return;
+            }
         }
         //添加拉流代理
         PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4, retry_count ? retry_count : -1));
@@ -1441,7 +1446,7 @@ void installWebApi() {
         //心跳hook
     });
 
-    api_regist("/index/api/hk_download", [](API_ARGS_MAP) {
+  /*  api_regist("/index/api/hk_download", [](API_ARGS_MAP) {
         CHECK_ARGS("deviceId","user","pwd","ip","port","channel", "start", "end");
         string deviceId = allArgs["deviceId"];
         int channel = allArgs["channel"];
@@ -1459,8 +1464,34 @@ void installWebApi() {
             val["msg"] =error.empty()? "下载失败" : error;
         }
         val["fileName"] = fileName;
-    });
 
+    });*/
+    api_regist("/index/api/hk_download", [](API_ARGS_MAP_ASYNC) {
+        EventPollerPool::Instance().getExecutorDelay([invoker, headerOut, allArgs](const vector<int> &vecDelay) {
+            Value val;
+            CHECK_ARGS("deviceId", "user", "pwd", "ip", "port", "channel", "start", "end");
+            string deviceId = allArgs["deviceId"];
+            int channel = allArgs["channel"];
+            string start = allArgs["start"];
+            string end = allArgs["end"];
+            const string user = allArgs["user"];
+            string pwd = allArgs["pwd"];
+            string ip = allArgs["ip"];
+            string port = allArgs["port"];
+            string fileName;
+            string error;
+            int ret = HcApi::get_instance().downloadFileByTime(
+                deviceId, user, pwd, ip, port, channel, start, end, fileName, error);
+            if (ret != 0) {
+                val["code"] = ret;
+                val["msg"] = error.empty() ? "下载失败" : error;
+            } else {
+                val["fileName"] = fileName;
+                val["code"] = API::Success;
+            }
+            invoker(200, headerOut, val.toStyledString());
+        });
+    });
     //  api_regist("/index/hcsdk/play", [](API_ARGS_JSON) {
     //    CHECK_ARGS("deviceId", "channel", "stream_id", "port");
     //    string deviceId = allArgs["deviceId"];

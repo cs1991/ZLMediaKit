@@ -19,6 +19,7 @@ typedef int pid_t;
 
 #include <fcntl.h>
 #include <string>
+#include "Util/logger.h"
 using namespace std;
 
 class Process {

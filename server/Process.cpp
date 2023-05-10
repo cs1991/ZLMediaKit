@@ -74,9 +74,11 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
     if (_pid < 0) {
         throw std::runtime_error(StrPrinter << "fork child process failed,err:" << get_uv_errmsg());
     }
+    ErrorL << "-------------------process run():: start  pid=" << _pid;
     if (_pid == 0) {
+        ErrorL << "-------------------process run():: start  pid==0*********************";
         //取消cpu亲和性设置，防止FFmpeg进程cpu占用率不能超过100%的问题
-        setThreadAffinity(-1);
+        //setThreadAffinity(-1);
         string log_file;
         if (log_file_tmp.empty()) {
             //未指定子进程日志文件时，重定向至/dev/null
@@ -131,13 +133,16 @@ void Process::run(const string &cmd, const string &log_file_tmp) {
         }
         // EOF: NULL
         charpv_params[params.size()] = NULL;
-
+        
         // TODO: execv or execvp
+        ErrorL << "-------------------process run():: execv start";
         auto ret = execv(params[0].c_str(), charpv_params);
+        ErrorL << "-------------------process run():: execv ret = " << ret;
         if (ret < 0) {
             fprintf(stderr, "fork process failed:%d(%s)\r\n", get_uv_error(), get_uv_errmsg());
         }
         exit(ret);
+        ErrorL << "-------------------process run():: execv exit-------------- ";
     }
 
     string log_file;

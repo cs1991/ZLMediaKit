@@ -45,6 +45,11 @@ public:
     void setOnClose(const function<void(const SockException &ex)> &cb);
 
     /**
+    * 设置注册事件，注册和反注册
+    **/
+    void setOnRegist(const function<void(const SockException &ex)> &cb);
+
+    /**
      * 开始拉流播放
      * @param strUrl
      */
@@ -55,12 +60,16 @@ public:
      */
     int totalReaderCount() ;
 
+    string getOriginUrl(MediaSource &sender) const override;
+    // MediaSourceEvent override
+    bool close(MediaSource &sender, bool force) override;
+    void onRegist(MediaSource &sender, bool regist);
+
 private:
-    //MediaSourceEvent override
-    bool close(MediaSource &sender,bool force) override;
+   
     int totalReaderCount(MediaSource &sender) override;
     MediaOriginType getOriginType(MediaSource &sender) const override;
-    string getOriginUrl(MediaSource &sender) const override;
+    
     std::shared_ptr<SockInfo> getOriginSock(MediaSource &sender) const override;
 
     void rePlay(const string &strUrl,int iFailedCnt);
@@ -77,6 +86,7 @@ private:
     string _pull_url;
     Timer::Ptr _timer;
     function<void(const SockException &ex)> _on_close;
+    function<void(const SockException &ex)> _on_Regist;
     function<void(const SockException &ex)> _on_play;
     MultiMediaSourceMuxer::Ptr _muxer;
 };

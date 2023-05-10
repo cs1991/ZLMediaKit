@@ -570,11 +570,13 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
             return false;
         }
 
+        
+#if 0  //modify by cs
         if (!is_mp4_vod) {
             //直播时触发无人观看事件，让开发者自行选择是否关闭
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastStreamNoneReader, *strong_sender);
         } else {
-            //这个是mp4点播，我们自动关闭
+            这个是mp4点播，我们自动关闭
             WarnL << "MP4点播无人观看,自动关闭:"
                   << strong_sender->getSchema() << "/"
                   << strong_sender->getVhost() << "/"
@@ -582,6 +584,11 @@ void MediaSourceEvent::onReaderChanged(MediaSource &sender, int size){
                   << strong_sender->getId();
             strong_sender->close(false);
         }
+#else
+        WarnL << "stream 无人观看,自动关闭:" << strong_sender->getSchema() << "/" << strong_sender->getVhost() << "/"
+              << strong_sender->getApp() << "/" << strong_sender->getId();
+        strong_sender->close(false);
+#endif
         return false;
     }, nullptr);
 }

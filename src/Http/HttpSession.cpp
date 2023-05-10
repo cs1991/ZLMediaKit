@@ -65,11 +65,22 @@ ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
 
     urlDecode(_parser);
     string cmd = _parser.Method();
+    if (cmd.find("GET") != cmd.npos) {
+        cmd = "GET";
+    }else  if (cmd.find("POST") != cmd.npos) {
+        cmd = "POST";
+    }else if (cmd.find("HEAD") != cmd.npos) {
+        cmd = "HEAD";
+    } else if (cmd.find("OPTIONS") != cmd.npos) {
+        cmd = "OPTIONS";
+    }
     auto it = s_func_map.find(cmd);
     if (it == s_func_map.end()) {
         WarnP(this) << "不支持该命令:" << cmd;
         sendResponse(405, true);
         return 0;
+    } else {
+        WarnP(this) << "支持该命令:" << cmd;
     }
 
     //跨域

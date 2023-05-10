@@ -2,6 +2,8 @@ project(ZLMediaKit)
 cmake_minimum_required(VERSION 3.1.3)
 #使能 c++11
 set(CMAKE_CXX_STANDARD 11)
+add_definitions(-std=c++11)
+
 #加载自定义模块
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 

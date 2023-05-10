@@ -29,13 +29,16 @@ PlayerProxy::PlayerProxy(const string &vhost, const string &app, const string &s
     _enable_mp4 = enable_mp4;
     _retry_count = retry_count;
     _on_close = [](const SockException &) {};
+     _on_Regist = [](const SockException &) {};
     (*this)[Client::kWaitTrackReady] = false;
 }
 
 void PlayerProxy::setPlayCallbackOnce(const function<void(const SockException &ex)> &cb) {
     _on_play = cb;
 }
-
+void PlayerProxy::setOnRegist(const function<void(const SockException &ex)> &cb) {
+    _on_Regist = cb ? cb : [](const SockException &) {};
+}
 void PlayerProxy::setOnClose(const function<void(const SockException &ex)> &cb) {
     _on_close = cb ? cb : [](const SockException &) {};
 }
@@ -138,7 +141,9 @@ void PlayerProxy::rePlay(const string &strUrl, int iFailedCnt) {
         return false;
     }, getPoller());
 }
+void PlayerProxy::onRegist(MediaSource &sender, bool regist) {
 
+}
 bool PlayerProxy::close(MediaSource &sender, bool force) {
     if (!force && totalReaderCount()) {
         return false;

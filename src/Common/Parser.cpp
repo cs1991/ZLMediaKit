@@ -48,6 +48,7 @@ void Parser::Parse(const char *buf) {
             break;
         }
         if (start == buf) {
+            //printf("_strMethod FindField::%s\n", line.data());
             _strMethod = FindField(line.data(), NULL, " ");
             auto strFullUrl = FindField(line.data(), " ", " ");
             auto args_pos = strFullUrl.find('?');
